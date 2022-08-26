@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PixelWindowSystem\PixelWindowSystem.csproj" />
+    <ProjectReference Include="..\VectorMaths\VectorMaths.csproj" />
   </ItemGroup>
 
 </Project>

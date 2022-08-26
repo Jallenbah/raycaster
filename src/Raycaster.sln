@@ -5,7 +5,9 @@ VisualStudioVersion = 17.3.32804.467
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "App", "App\App.csproj", "{EC3A68B3-3989-444E-8F1D-1703263C0A4E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixelWindowSystem", "PixelWindowSystem\PixelWindowSystem.csproj", "{C2C702C4-2EC1-4554-9982-55F12884FE2C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixelWindowSystem", "PixelWindowSystem\PixelWindowSystem.csproj", "{C2C702C4-2EC1-4554-9982-55F12884FE2C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VectorMaths", "VectorMaths\VectorMaths.csproj", "{B65CB2C2-6D5F-4073-9F62-E6E768097A29}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{C2C702C4-2EC1-4554-9982-55F12884FE2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C2C702C4-2EC1-4554-9982-55F12884FE2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C2C702C4-2EC1-4554-9982-55F12884FE2C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B65CB2C2-6D5F-4073-9F62-E6E768097A29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B65CB2C2-6D5F-4073-9F62-E6E768097A29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B65CB2C2-6D5F-4073-9F62-E6E768097A29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B65CB2C2-6D5F-4073-9F62-E6E768097A29}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
