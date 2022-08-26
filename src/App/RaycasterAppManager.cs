@@ -11,17 +11,17 @@ internal class RaycasterAppManager : IPixelWindowAppManager
     {
     }
 
-    public void Update(double frameTime)
+    public void Update(float frameTime)
     {
     }
 
-    public void FixedUpdate(double timeStep)
+    public void FixedUpdate(float timeStep)
     {
-        var stepsPerMinute = (1000 / (float)timeStep) * 60;
+        var stepsPerMinute = (1000 / timeStep) * 60;
         _secondHandDirection = _secondHandDirection.Rotate(AngleHelper.DegreesToRadians(360/stepsPerMinute));
     }
 
-    public void Render(PixelData pixelData, double frameTime)
+    public void Render(PixelData pixelData, float frameTime)
     {
         const uint offset = 30;
         const uint secondHandLength = 25;
