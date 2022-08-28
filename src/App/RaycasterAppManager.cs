@@ -5,6 +5,11 @@ using VectorMaths;
 
 internal class RaycasterAppManager : IPixelWindowAppManager
 {
+    private RenderWindow? _renderWindow;
+    private bool _mouseCaptured;
+    private SFML.System.Vector2i _windowCentre;
+    private float _mouseSensitivity = 3.0f;
+
     private Vector2 _cameraPos;
     private Vector2 _cameraDirection;
     private Vector2 _cameraPlane;
@@ -15,17 +20,75 @@ internal class RaycasterAppManager : IPixelWindowAppManager
     {
         _cameraPos = new Vector2(8, 8);
         _cameraDirection = Vector2.Normalize(new Vector2(1, 1));
-        _cameraPlane = _cameraDirection.Rotate(AngleHelper.RadiansToDegrees(90));
 
-        _cameraPlane *= MathF.Tan(AngleHelper.DegreesToRadians(_fovDegrees/2));
+        _cameraPlane = _cameraDirection.Rotate(AngleHelper.RadiansToDegrees(90));
+        _cameraPlane *= MathF.Tan(AngleHelper.DegreesToRadians(_fovDegrees/2)); // fov adjustment
     }
 
     public void OnLoad(RenderWindow renderWindow)
     {
+        _renderWindow = renderWindow;
+
+        _windowCentre = new SFML.System.Vector2i((int)_renderWindow!.Size.X / 2, (int)_renderWindow!.Size.Y / 2);
+
+        _renderWindow.KeyPressed += KeyPressedHandler;
+        _renderWindow.MouseButtonPressed += MousePressedHandler;
+        _renderWindow.MouseButtonReleased += MouseReleasedHandler;
+    }
+
+    private void MouseReleasedHandler(object? sender, SFML.Window.MouseButtonEventArgs e)
+    {
+        switch (e.Button)
+        {
+            case SFML.Window.Mouse.Button.Right:
+                CaptureMouse(false);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void MousePressedHandler(object? sender, SFML.Window.MouseButtonEventArgs e)
+    {
+        switch (e.Button)
+        {
+            case SFML.Window.Mouse.Button.Right:
+                CaptureMouse(true);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void KeyPressedHandler(object? sender, SFML.Window.KeyEventArgs e)
+    {
+        switch (e.Code)
+        {
+            case SFML.Window.Keyboard.Key.Escape:
+                _renderWindow!.Close();
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void CaptureMouse(bool capture)
+    {
+        _renderWindow!.SetMouseCursorGrabbed(capture);
+        _renderWindow!.SetMouseCursorVisible(!capture);
+        SFML.Window.Mouse.SetPosition(_windowCentre, _renderWindow);
+        _mouseCaptured = capture;
     }
 
     public void Update(float frameTime)
     {
+        if (_mouseCaptured)
+        {
+            var mousePos = SFML.Window.Mouse.GetPosition(_renderWindow);
+            SFML.Window.Mouse.SetPosition(_windowCentre, _renderWindow);
+            var mouseDelta = mousePos - _windowCentre;
+            RotateCamera(mouseDelta.X / 1000f * _mouseSensitivity);
+        }
     }
 
     public void FixedUpdate(float timeStep)
@@ -49,6 +112,12 @@ internal class RaycasterAppManager : IPixelWindowAppManager
 
             pixelData[(uint)(midPos.x + MathF.Round(test.X)), (uint)(midPos.y + MathF.Round(test.Y))] = (255, 0, 0);
         }
+    }
+
+    private void RotateCamera(float radians)
+    {
+        _cameraDirection = _cameraDirection.Rotate(radians);
+        _cameraPlane = _cameraPlane.Rotate(radians);
     }
 
     private float PixelToViewportCoord(uint pixelCoord, uint pixelScreenLength) => (pixelCoord - (pixelScreenLength / 2f)) / (pixelScreenLength / 2f);
