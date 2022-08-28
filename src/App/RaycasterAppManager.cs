@@ -6,9 +6,7 @@ using VectorMaths;
 internal class RaycasterAppManager : IPixelWindowAppManager
 {
     private RenderWindow? _renderWindow;
-    private bool _mouseCaptured;
-    private SFML.System.Vector2i _windowCentre;
-    private float _mouseSensitivity = 3.0f;
+    private InputController? _inputController;
 
     private Vector2 _cameraPos;
     private Vector2 _cameraDirection;
@@ -29,65 +27,15 @@ internal class RaycasterAppManager : IPixelWindowAppManager
     {
         _renderWindow = renderWindow;
 
-        _windowCentre = new SFML.System.Vector2i((int)_renderWindow!.Size.X / 2, (int)_renderWindow!.Size.Y / 2);
-
-        _renderWindow.KeyPressed += KeyPressedHandler;
-        _renderWindow.MouseButtonPressed += MousePressedHandler;
-        _renderWindow.MouseButtonReleased += MouseReleasedHandler;
-    }
-
-    private void MouseReleasedHandler(object? sender, SFML.Window.MouseButtonEventArgs e)
-    {
-        switch (e.Button)
-        {
-            case SFML.Window.Mouse.Button.Right:
-                CaptureMouse(false);
-                break;
-            default:
-                break;
-        }
-    }
-
-    private void MousePressedHandler(object? sender, SFML.Window.MouseButtonEventArgs e)
-    {
-        switch (e.Button)
-        {
-            case SFML.Window.Mouse.Button.Right:
-                CaptureMouse(true);
-                break;
-            default:
-                break;
-        }
-    }
-
-    private void KeyPressedHandler(object? sender, SFML.Window.KeyEventArgs e)
-    {
-        switch (e.Code)
-        {
-            case SFML.Window.Keyboard.Key.Escape:
-                _renderWindow!.Close();
-                break;
-            default:
-                break;
-        }
-    }
-
-    private void CaptureMouse(bool capture)
-    {
-        _renderWindow!.SetMouseCursorGrabbed(capture);
-        _renderWindow!.SetMouseCursorVisible(!capture);
-        SFML.Window.Mouse.SetPosition(_windowCentre, _renderWindow);
-        _mouseCaptured = capture;
+        _inputController = new InputController(_renderWindow);
     }
 
     public void Update(float frameTime)
     {
-        if (_mouseCaptured)
+        if (_inputController!.MouseCaptured)
         {
-            var mousePos = SFML.Window.Mouse.GetPosition(_renderWindow);
-            SFML.Window.Mouse.SetPosition(_windowCentre, _renderWindow);
-            var mouseDelta = mousePos - _windowCentre;
-            RotateCamera(mouseDelta.X / 1000f * _mouseSensitivity);
+            var mouseDelta = _inputController.GetSensitivityAdjustedMouseDeltaAndResetToCentre();
+            RotateCamera(mouseDelta.X);
         }
     }
 
@@ -114,17 +62,19 @@ internal class RaycasterAppManager : IPixelWindowAppManager
         }
     }
 
+    // Rotate the camera left / right. Positive angle is clockwise rotation
     private void RotateCamera(float radians)
     {
         _cameraDirection = _cameraDirection.Rotate(radians);
         _cameraPlane = _cameraPlane.Rotate(radians);
     }
 
+    // Takes a pixel coordinate starting in the top left and converts it to a -1 to 1 float value where 0 is the centre of the screen
     private float PixelToViewportCoord(uint pixelCoord, uint pixelScreenLength) => (pixelCoord - (pixelScreenLength / 2f)) / (pixelScreenLength / 2f);
 
     private Vector2? CastRay(Vector2 cameraPos, Vector2 direction)
     {
-        return null;
+        return null; // todo
     }
 
     private readonly int[,] _map = {
