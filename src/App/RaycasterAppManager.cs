@@ -14,6 +14,8 @@ internal class RaycasterAppManager : IPixelWindowAppManager
 
     private float _fovDegrees = 90;
 
+    private bool _renderDebug = true;
+
     public RaycasterAppManager()
     {
         _cameraPos = new Vector2(8, 8);
@@ -56,9 +58,26 @@ internal class RaycasterAppManager : IPixelWindowAppManager
             var xAsViewportCoord = PixelToViewportCoord(x, pixelData.Width);
             var rayVector = Vector2.Normalize((xAsViewportCoord * _cameraPlane) + _cameraDirection);
 
-            var test = rayVector * mult;
+            // This will be needed but for now its easier for debugging to cast just 1 ray below
+            //var hit = CastRay(_cameraPos, rayVector, pixelData);
+        }
 
-            pixelData[(uint)(midPos.x + MathF.Round(test.X)), (uint)(midPos.y + MathF.Round(test.Y))] = (255, 0, 0);
+        // TODO - REMOVE: For debugging purposes, casting just 1 ray
+        CastRay(_cameraPos, _cameraDirection, pixelData);
+
+        if (_renderDebug)
+        {
+            for (var x = 0; x < 16; x++)
+            {
+                for (var y = 0; y < 16; y++)
+                {
+                    var offsetPos = new Vector2(x, y) + new Vector2(midPos.x, midPos.y) - _cameraPos;
+                    if (GetMapEntry(x, y) == 1)
+                    {
+                        pixelData[(uint)offsetPos.X, (uint)offsetPos.Y] = (0, 0, 255);
+                    }
+                }
+            }
         }
     }
 
@@ -72,9 +91,58 @@ internal class RaycasterAppManager : IPixelWindowAppManager
     // Takes a pixel coordinate starting in the top left and converts it to a -1 to 1 float value where 0 is the centre of the screen
     private float PixelToViewportCoord(uint pixelCoord, uint pixelScreenLength) => (pixelCoord - (pixelScreenLength / 2f)) / (pixelScreenLength / 2f);
 
-    private Vector2? CastRay(Vector2 cameraPos, Vector2 direction)
+    // Returns a vector of the hit location, or null if nothing is hit
+    // TODO - DOESN'T WORK - Draws a great line but won't catch every square when tracing for a hit. Needs to be rewritten
+    // to step along X or Y depending on which one is closer to a grid-line. Currently it always makes a whole step along
+    // one axis, which means you jump over the corner of some cells.
+    private Vector2? CastRay(Vector2 cameraPos, Vector2 direction, PixelData pixelData)
     {
-        return null; // todo
+        const uint cellStepLimit = 100;
+        var midPos = new Vector2(pixelData.Width / 2, pixelData.Height / 2);
+
+        direction = Vector2.Normalize(direction); // We need direction to be unit vector, so ensure it is
+        var rayPos = cameraPos;
+        for (uint i = 0; i < cellStepLimit; i++)
+        {
+            if (_renderDebug)
+            {
+                var offsetPos = rayPos + midPos - _cameraPos;
+                if (offsetPos.X > 0 && offsetPos.Y > 0 && offsetPos.X < pixelData.Width && offsetPos.Y < pixelData.Height)
+                {
+                    pixelData[(uint)offsetPos.X, (uint)offsetPos.Y] = (255, 0, 0);
+                }
+            }
+
+            if (GetMapEntry((int)(rayPos.X), (int)(rayPos.Y)) == 1)
+            {
+                break;
+            }
+
+            if (MathF.Abs(direction.Y) <= MathF.Abs(direction.X))
+            {
+                rayPos.X += (direction.X / MathF.Abs(direction.X));
+                rayPos.Y += (1 / MathF.Abs(direction.X)) * direction.Y;
+            }
+            else
+            {
+                rayPos.Y += (direction.Y / MathF.Abs(direction.Y));
+                rayPos.X += (1 / MathF.Abs(direction.Y)) * direction.X;
+            }
+        }
+
+        return null;
+    }
+
+    private int GetMapEntry(int x, int y)
+    {
+        if (x < 0 || y < 0 || x >= 16 || y >= 16)
+        {
+            return -1;
+        }
+        else
+        {
+            return _map[x, y];
+        }
     }
 
     private readonly int[,] _map = {
