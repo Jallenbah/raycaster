@@ -49,9 +49,7 @@ internal class RaycasterAppManager : IPixelWindowAppManager
     {
         pixelData.Clear();
 
-        var mult = pixelData.Width / 5;
-        (uint x, uint y) midPos = (pixelData.Width / 2, pixelData.Height / 2);
-        pixelData[midPos.x, midPos.y] = (0, 255, 0);
+        Vector2 midPos = new Vector2(pixelData.Width / 2, pixelData.Height / 2);
 
         for (uint x = 0; x < pixelData.Width; x++)
         {
@@ -63,20 +61,49 @@ internal class RaycasterAppManager : IPixelWindowAppManager
         }
 
         // TODO - REMOVE: For debugging purposes, casting just 1 ray
-        CastRay(_cameraPos, _cameraDirection, pixelData);
+        var singleRayHit = CastRayBad(_cameraPos, _cameraDirection, pixelData);
 
         if (_renderDebug)
         {
-            for (var x = 0; x < 16; x++)
+            const int mapWidth = 16;
+            const int mapHeight = 16;
+            var renderScale = Math.Min((pixelData.Width / 2) / mapWidth, (pixelData.Height / 2) / mapHeight);
+
+            Vector2 getRenderPosFromWorldPos(Vector2 pos)
             {
-                for (var y = 0; y < 16; y++)
+                var centerOrientedPos = new Vector2(pos.X - mapWidth / 2, pos.Y - mapWidth / 2);
+                return (centerOrientedPos * renderScale) + midPos;
+            };
+
+            // Camera position as green dot
+            var playerRenderPosition = getRenderPosFromWorldPos(_cameraPos);
+            pixelData[(uint)playerRenderPosition.X, (uint)playerRenderPosition.Y] = (0, 255, 0);
+
+            for (var x = 0; x < mapWidth; x++)
+            {
+                for (var y = 0; y < mapHeight; y++)
                 {
-                    var offsetPos = new Vector2(x, y) + new Vector2(midPos.x, midPos.y) - _cameraPos;
-                    if (GetMapEntry(x, y) == 1)
+                    if (GetMapEntry(x, y) != 1)
                     {
-                        pixelData[(uint)offsetPos.X, (uint)offsetPos.Y] = (0, 0, 255);
+                        continue;
+                    }
+
+                    var blockPos = getRenderPosFromWorldPos(new Vector2(x, y));
+
+                    for (uint bx = (uint)blockPos.X; bx < (blockPos.X + renderScale) - 1; bx++)
+                    {
+                        for (uint by = (uint)blockPos.Y; by < (blockPos.Y + renderScale) - 1; by++)
+                        {
+                            pixelData[bx, by] = (0, 0, 255);
+                        }
                     }
                 }
+            }
+
+            if(singleRayHit != null)
+            {
+                var rayHitRenderPos = getRenderPosFromWorldPos(singleRayHit.Value);
+                pixelData[(uint)rayHitRenderPos.X, (uint)rayHitRenderPos.Y] = (255, 0, 0);
             }
         }
     }
@@ -95,7 +122,7 @@ internal class RaycasterAppManager : IPixelWindowAppManager
     // TODO - DOESN'T WORK - Draws a great line but won't catch every square when tracing for a hit. Needs to be rewritten
     // to step along X or Y depending on which one is closer to a grid-line. Currently it always makes a whole step along
     // one axis, which means you jump over the corner of some cells.
-    private Vector2? CastRay(Vector2 cameraPos, Vector2 direction, PixelData pixelData)
+    private Vector2? CastRayBad(Vector2 cameraPos, Vector2 direction, PixelData pixelData)
     {
         const uint cellStepLimit = 100;
         var midPos = new Vector2(pixelData.Width / 2, pixelData.Height / 2);
@@ -104,18 +131,18 @@ internal class RaycasterAppManager : IPixelWindowAppManager
         var rayPos = cameraPos;
         for (uint i = 0; i < cellStepLimit; i++)
         {
-            if (_renderDebug)
-            {
-                var offsetPos = rayPos + midPos - _cameraPos;
-                if (offsetPos.X > 0 && offsetPos.Y > 0 && offsetPos.X < pixelData.Width && offsetPos.Y < pixelData.Height)
-                {
-                    pixelData[(uint)offsetPos.X, (uint)offsetPos.Y] = (255, 0, 0);
-                }
-            }
+            //if (_renderDebug)
+            //{
+            //    var offsetPos = rayPos + midPos - _cameraPos;
+            //    if (offsetPos.X > 0 && offsetPos.Y > 0 && offsetPos.X < pixelData.Width && offsetPos.Y < pixelData.Height)
+            //    {
+            //        pixelData[(uint)offsetPos.X, (uint)offsetPos.Y] = (255, 0, 0);
+            //    }
+            //}
 
             if (GetMapEntry((int)(rayPos.X), (int)(rayPos.Y)) == 1)
             {
-                break;
+                return rayPos;
             }
 
             if (MathF.Abs(direction.Y) <= MathF.Abs(direction.X))
