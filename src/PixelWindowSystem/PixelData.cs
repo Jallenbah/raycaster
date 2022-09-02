@@ -60,6 +60,19 @@
         }
 
         /// <summary>
+        /// Sets the colour of a pixel, doing nothing if it's outside of the canvas
+        /// </summary>
+        public void SetSafe(uint x, uint y, (byte r, byte g, byte b) colour)
+        {
+            if(x < 0 || y < 0 || x >= Width || y >= Height)
+            {
+                return;
+            }
+
+            this[x, y] = colour;
+        }
+
+        /// <summary>
         /// Clears all bytes in the pixel data to 0
         /// </summary>
         public void Clear()

@@ -72,6 +72,12 @@ internal class InputController
         MouseCaptured = capture;
     }
 
+    // Public flags checking if the WASD keys are pressed and the mouse is captured, for movement
+    public bool MoveForward => MouseCaptured && SFML.Window.Keyboard.IsKeyPressed(SFML.Window.Keyboard.Key.W);
+    public bool MoveLeft => MouseCaptured && SFML.Window.Keyboard.IsKeyPressed(SFML.Window.Keyboard.Key.A);
+    public bool MoveBackwards => MouseCaptured && SFML.Window.Keyboard.IsKeyPressed(SFML.Window.Keyboard.Key.S);
+    public bool MoveRight => MouseCaptured && SFML.Window.Keyboard.IsKeyPressed(SFML.Window.Keyboard.Key.D);
+
     /// <summary>
     /// Gets a mouse sensitivity adjusted mouse movement vector, which can be used for analogue input
     /// </summary>

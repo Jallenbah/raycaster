@@ -18,7 +18,7 @@ internal class RaycasterAppManager : IPixelWindowAppManager
 
     public RaycasterAppManager()
     {
-        _cameraPos = new Vector2(8, 8);
+        _cameraPos = new Vector2(7.5f, 7.5f);
         _cameraDirection = Vector2.Normalize(new Vector2(1, 1));
 
         _cameraPlane = _cameraDirection.Rotate(AngleHelper.RadiansToDegrees(90));
@@ -43,70 +43,88 @@ internal class RaycasterAppManager : IPixelWindowAppManager
 
     public void FixedUpdate(float timeStep)
     {
+        var moveSpeed = 4f * 0.001f * timeStep;
+        var movementVector = new Vector2(0, 0);
+        if (_inputController!.MoveForward)   movementVector += _cameraDirection;
+        if (_inputController!.MoveBackwards) movementVector -= _cameraDirection;
+        if (_inputController!.MoveLeft)      movementVector += _cameraDirection.Rotate(AngleHelper.DegreesToRadians(-90));
+        if (_inputController!.MoveRight)     movementVector += _cameraDirection.Rotate(AngleHelper.DegreesToRadians(90));
+        movementVector = movementVector.LengthSquared() == 0 ? movementVector : Vector2.Normalize(movementVector);
+        _cameraPos += moveSpeed * movementVector;
     }
 
     public void Render(PixelData pixelData, float frameTime)
     {
         pixelData.Clear();
 
-        Vector2 midPos = new Vector2(pixelData.Width / 2, pixelData.Height / 2);
-
+        var hitLocations = new Vector2?[pixelData.Width];
         for (uint x = 0; x < pixelData.Width; x++)
         {
             var xAsViewportCoord = PixelToViewportCoord(x, pixelData.Width);
             var rayVector = Vector2.Normalize((xAsViewportCoord * _cameraPlane) + _cameraDirection);
 
             // This will be needed but for now its easier for debugging to cast just 1 ray below
-            //var hit = CastRay(_cameraPos, rayVector, pixelData);
+            //hitLocations[x] = CastRay(_cameraPos, rayVector, pixelData);
         }
-
-        // TODO - REMOVE: For debugging purposes, casting just 1 ray
-        var singleRayHit = CastRayBad(_cameraPos, _cameraDirection, pixelData);
 
         if (_renderDebug)
         {
-            const int mapWidth = 16;
-            const int mapHeight = 16;
-            var renderScale = Math.Min((pixelData.Width / 2) / mapWidth, (pixelData.Height / 2) / mapHeight);
+            var midPos = GetRenderMidPosForDebugRender(pixelData.Width, pixelData.Height);
+            var renderScale = GetRenderScaleForDebugRender(pixelData.Width, pixelData.Height);
 
-            Vector2 getRenderPosFromWorldPos(Vector2 pos)
+            // Render map as blue blocks
+            for (var x = 0; x < _mapWidth; x++)
             {
-                var centerOrientedPos = new Vector2(pos.X - mapWidth / 2, pos.Y - mapWidth / 2);
-                return (centerOrientedPos * renderScale) + midPos;
-            };
-
-            // Camera position as green dot
-            var playerRenderPosition = getRenderPosFromWorldPos(_cameraPos);
-            pixelData[(uint)playerRenderPosition.X, (uint)playerRenderPosition.Y] = (0, 255, 0);
-
-            for (var x = 0; x < mapWidth; x++)
-            {
-                for (var y = 0; y < mapHeight; y++)
+                for (var y = 0; y < _mapHeight; y++)
                 {
                     if (GetMapEntry(x, y) != 1)
                     {
                         continue;
                     }
 
-                    var blockPos = getRenderPosFromWorldPos(new Vector2(x, y));
+                    var blockPos = GetRenderPosFromWorldPosForDebugRender(new Vector2(x, y), midPos, renderScale);
 
-                    for (uint bx = (uint)blockPos.X; bx < (blockPos.X + renderScale) - 1; bx++)
+                    for (uint bx = (uint)blockPos.X + 1; bx < (blockPos.X + renderScale); bx++)
                     {
-                        for (uint by = (uint)blockPos.Y; by < (blockPos.Y + renderScale) - 1; by++)
+                        for (uint by = (uint)blockPos.Y + 1; by < (blockPos.Y + renderScale); by++)
                         {
-                            pixelData[bx, by] = (0, 0, 255);
+                            pixelData.SetSafe(bx, by, (0, 0, 255));
                         }
                     }
                 }
             }
 
-            if(singleRayHit != null)
+            // For debugging purposes, casting just 1 ray
+            hitLocations[0] = CastRay(_cameraPos, _cameraDirection, pixelData);
+
+            // Show where casted rays have hit
+            for (var x = 0; x < hitLocations.Length; x++)
             {
-                var rayHitRenderPos = getRenderPosFromWorldPos(singleRayHit.Value);
-                pixelData[(uint)rayHitRenderPos.X, (uint)rayHitRenderPos.Y] = (255, 0, 0);
+                if (hitLocations[x] != null)
+                {
+                    var renderPos = GetRenderPosFromWorldPosForDebugRender(hitLocations[x]!.Value, midPos, renderScale);
+                    pixelData.SetSafe((uint)renderPos.X, (uint)renderPos.Y, (0, 255, 255));
+                }
             }
+
+            // Camera position as green dot
+            var playerRenderPosition = GetRenderPosFromWorldPosForDebugRender(_cameraPos, midPos, renderScale);
+            pixelData.SetSafe((uint)playerRenderPosition.X, (uint)playerRenderPosition.Y, (0, 255, 0));
         }
     }
+
+    private Vector2 GetRenderPosFromWorldPosForDebugRender(Vector2 pos, Vector2 midPos, uint renderScale)
+    {
+        var centerOrientedPos = new Vector2(pos.X - _mapWidth / 2, pos.Y - _mapWidth / 2);
+        return (centerOrientedPos * renderScale) + midPos;
+    }
+
+    private uint GetRenderScaleForDebugRender(uint canvasWidth, uint canvasHeight) =>
+        Math.Min((canvasWidth / 2) / _mapWidth, (canvasHeight / 2) / _mapHeight);
+
+    private Vector2 GetRenderMidPosForDebugRender(uint canvasWidth, uint canvasHeight) =>
+        new Vector2(canvasWidth / 2, canvasHeight / 2);
+
 
     // Rotate the camera left / right. Positive angle is clockwise rotation
     private void RotateCamera(float radians)
@@ -116,44 +134,92 @@ internal class RaycasterAppManager : IPixelWindowAppManager
     }
 
     // Takes a pixel coordinate starting in the top left and converts it to a -1 to 1 float value where 0 is the centre of the screen
-    private float PixelToViewportCoord(uint pixelCoord, uint pixelScreenLength) => (pixelCoord - (pixelScreenLength / 2f)) / (pixelScreenLength / 2f);
+    private float PixelToViewportCoord(uint pixelCoord, uint pixelScreenLength) =>
+        (pixelCoord - (pixelScreenLength / 2f)) / (pixelScreenLength / 2f);
 
-    // Returns a vector of the hit location, or null if nothing is hit
-    // TODO - DOESN'T WORK - Draws a great line but won't catch every square when tracing for a hit. Needs to be rewritten
-    // to step along X or Y depending on which one is closer to a grid-line. Currently it always makes a whole step along
-    // one axis, which means you jump over the corner of some cells.
-    private Vector2? CastRayBad(Vector2 cameraPos, Vector2 direction, PixelData pixelData)
+    /// <summary>
+    /// For a given camera position and direction, finds the first point at which the ray hits something
+    /// </summary>
+    /// <param name="cameraPos">The position of the camera</param>
+    /// <param name="direction">The direction in which the camera is facing</param>
+    /// <param name="pixelData">Instance of the rendering <see cref="PixelData"/> used for debug rendering of ray checking points</param>
+    /// <returns>A <see cref="Vector2"/> of the point at which a non-empty cell was hit, or null if nothing was hit</returns>
+    private Vector2? CastRay(Vector2 cameraPos, Vector2 direction, PixelData pixelData)
     {
-        const uint cellStepLimit = 100;
-        var midPos = new Vector2(pixelData.Width / 2, pixelData.Height / 2);
+        const uint iterationLimit = 100;
 
         direction = Vector2.Normalize(direction); // We need direction to be unit vector, so ensure it is
         var rayPos = cameraPos;
-        for (uint i = 0; i < cellStepLimit; i++)
+
+        // Finds the next integer coordinate value based on the current position in the ray and the direction in which it is being cast on that axis
+        float calculateNextGridValue(float currentPos, float directionUnitValue)
         {
-            //if (_renderDebug)
-            //{
-            //    var offsetPos = rayPos + midPos - _cameraPos;
-            //    if (offsetPos.X > 0 && offsetPos.Y > 0 && offsetPos.X < pixelData.Width && offsetPos.Y < pixelData.Height)
-            //    {
-            //        pixelData[(uint)offsetPos.X, (uint)offsetPos.Y] = (255, 0, 0);
-            //    }
-            //}
+            float val = currentPos < 0 == directionUnitValue < 0
+                ? (int)(currentPos + directionUnitValue)
+                : (int)currentPos;
 
-            if (GetMapEntry((int)(rayPos.X), (int)(rayPos.Y)) == 1)
-            {
-                return rayPos;
-            }
+            val = val == currentPos
+                ? val + directionUnitValue
+                : val;
 
-            if (MathF.Abs(direction.Y) <= MathF.Abs(direction.X))
+            return val;
+        }
+
+        // Get X and Y polarised direction values i.e. 1, 0, -1
+        var polarisedDirectionUnitValues = new Vector2(
+            direction.X / MathF.Abs(direction.X),
+            direction.Y / MathF.Abs(direction.Y)
+        );
+
+        for (var i = 0; i < iterationLimit; i++)
+        {
+            // Find next gridline intersection point (integer coordinate) for X and Y components
+            var nextGridValuesAlongRay = new Vector2(
+                calculateNextGridValue(rayPos.X, polarisedDirectionUnitValues.X),
+                calculateNextGridValue(rayPos.Y, polarisedDirectionUnitValues.Y)
+            );
+
+            // A vector representing what would needed to be added to rayPos to get to the next X gridline along the ray
+            var distanceToNextX = new Vector2(
+                nextGridValuesAlongRay.X - rayPos.X,
+                direction.Y * ((nextGridValuesAlongRay.X - rayPos.X) / direction.X)
+            );
+
+            // A vector representing what would needed to be added to rayPos to get to the next Y gridline along the ray
+            var distanceToNextY = new Vector2(
+                direction.X * ((nextGridValuesAlongRay.Y - rayPos.Y) / direction.Y),
+                nextGridValuesAlongRay.Y - rayPos.Y
+            );
+
+            // We compare the squared lengths of the 2 vectors as it avoids unnecessary costly sqrts to get the actual lengths
+            if (distanceToNextX.LengthSquared() < distanceToNextY.LengthSquared())
             {
-                rayPos.X += (direction.X / MathF.Abs(direction.X));
-                rayPos.Y += (1 / MathF.Abs(direction.X)) * direction.Y;
+                rayPos += distanceToNextX;
             }
             else
             {
-                rayPos.Y += (direction.Y / MathF.Abs(direction.Y));
-                rayPos.X += (1 / MathF.Abs(direction.Y)) * direction.X;
+                rayPos += distanceToNextY;
+            }
+
+            // By stepping the ray forward a tiny amount, we can get the next grid unit.
+            // Adjust by 1 if negative as cell occupies x to x+1 so flooring a negative number would wrongly get the next cell over.
+            const float cellCheckStepSize = 0.0001f;
+            var cellToCheck = (
+                X: (int)(rayPos.X + cellCheckStepSize * direction.X) + (rayPos.X < 0 ? -1 : 0),
+                Y: (int)(rayPos.Y + cellCheckStepSize * direction.Y) + (rayPos.Y < 0 ? -1 : 0)
+            );
+            if (GetMapEntry(cellToCheck.X, cellToCheck.Y) == 1)
+            {
+                return rayPos; // You sunk my battleship
+            }
+
+            // Shows every single ray position through the cast. Overkill most of the time
+            if (_renderDebug)
+            {
+                var midPos = GetRenderMidPosForDebugRender(pixelData.Width, pixelData.Height);
+                var renderScale = GetRenderScaleForDebugRender(pixelData.Width, pixelData.Height);
+                var rayCheckRenderPos = GetRenderPosFromWorldPosForDebugRender(rayPos, midPos, renderScale);
+                pixelData.SetSafe((uint)rayCheckRenderPos.X, (uint)rayCheckRenderPos.Y, (255, 0, 0));
             }
         }
 
@@ -172,6 +238,8 @@ internal class RaycasterAppManager : IPixelWindowAppManager
         }
     }
 
+    private const int _mapWidth = 16;
+    private const int _mapHeight = 16;
     private readonly int[,] _map = {
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
         {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
