@@ -80,9 +80,9 @@ internal class RaycasterAppManager : IPixelWindowAppManager
             }
 
             var distance = (hitLocations[x]!.Value - _cameraPos).Length();
-            var lineHeight = (uint)((1 / distance) * pixelData.Height);
+            var lineHeight = (uint)((1 / Math.Max(distance, 1)) * pixelData.Height);
             var facesY = (hitLocations[x]!.Value.X - (int)hitLocations[x]!.Value.X) > (hitLocations[x]!.Value.Y - (int)hitLocations[x]!.Value.Y);
-            byte brightness = (byte)((1 / distance * 200) + (facesY ? 55: 0));
+            byte brightness = (byte)((1 / Math.Max(distance, 1) * 200) + (facesY ? 55: 0));
             DrawVerticalPixelStrip(pixelData, x, lineHeight, (brightness, brightness, brightness));
         }
 
