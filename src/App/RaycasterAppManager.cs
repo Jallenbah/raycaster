@@ -7,6 +7,7 @@ internal class RaycasterAppManager : IPixelWindowAppManager
 {
     private RenderWindow? _renderWindow;
     private InputController? _inputController;
+    private DebugRenderer? _debugRenderer;
 
     private Vector2 _cameraPos;
     private Vector2 _cameraDirection;
@@ -28,8 +29,8 @@ internal class RaycasterAppManager : IPixelWindowAppManager
     public void OnLoad(RenderWindow renderWindow)
     {
         _renderWindow = renderWindow;
-
         _inputController = new InputController(_renderWindow);
+        _debugRenderer = new DebugRenderer(_mapWidth, _mapHeight);
     }
 
     public void Update(float frameTime)
@@ -63,68 +64,17 @@ internal class RaycasterAppManager : IPixelWindowAppManager
             var xAsViewportCoord = PixelToViewportCoord(x, pixelData.Width);
             var rayVector = Vector2.Normalize((xAsViewportCoord * _cameraPlane) + _cameraDirection);
 
-            // This will be needed but for now its easier for debugging to cast just 1 ray below
-            //hitLocations[x] = CastRay(_cameraPos, rayVector, pixelData);
+            hitLocations[x] = CastRay(_cameraPos, rayVector, pixelData);
         }
 
         if (_renderDebug)
         {
-            var midPos = GetRenderMidPosForDebugRender(pixelData.Width, pixelData.Height);
-            var renderScale = GetRenderScaleForDebugRender(pixelData.Width, pixelData.Height);
-
-            // Render map as blue blocks
-            for (var x = 0; x < _mapWidth; x++)
-            {
-                for (var y = 0; y < _mapHeight; y++)
-                {
-                    if (GetMapEntry(x, y) != 1)
-                    {
-                        continue;
-                    }
-
-                    var blockPos = GetRenderPosFromWorldPosForDebugRender(new Vector2(x, y), midPos, renderScale);
-
-                    for (uint bx = (uint)blockPos.X + 1; bx < (blockPos.X + renderScale); bx++)
-                    {
-                        for (uint by = (uint)blockPos.Y + 1; by < (blockPos.Y + renderScale); by++)
-                        {
-                            pixelData.SetSafe(bx, by, (0, 0, 255));
-                        }
-                    }
-                }
-            }
-
             // For debugging purposes, casting just 1 ray
-            hitLocations[0] = CastRay(_cameraPos, _cameraDirection, pixelData);
+            //hitLocations[0] = CastRay(_cameraPos, _cameraDirection, pixelData);
 
-            // Show where casted rays have hit
-            for (var x = 0; x < hitLocations.Length; x++)
-            {
-                if (hitLocations[x] != null)
-                {
-                    var renderPos = GetRenderPosFromWorldPosForDebugRender(hitLocations[x]!.Value, midPos, renderScale);
-                    pixelData.SetSafe((uint)renderPos.X, (uint)renderPos.Y, (0, 255, 255));
-                }
-            }
-
-            // Camera position as green dot
-            var playerRenderPosition = GetRenderPosFromWorldPosForDebugRender(_cameraPos, midPos, renderScale);
-            pixelData.SetSafe((uint)playerRenderPosition.X, (uint)playerRenderPosition.Y, (0, 255, 0));
+            _debugRenderer!.Render(pixelData, _cameraPos, GetMapEntry, hitLocations);
         }
     }
-
-    private Vector2 GetRenderPosFromWorldPosForDebugRender(Vector2 pos, Vector2 midPos, uint renderScale)
-    {
-        var centerOrientedPos = new Vector2(pos.X - _mapWidth / 2, pos.Y - _mapWidth / 2);
-        return (centerOrientedPos * renderScale) + midPos;
-    }
-
-    private uint GetRenderScaleForDebugRender(uint canvasWidth, uint canvasHeight) =>
-        Math.Min((canvasWidth / 2) / _mapWidth, (canvasHeight / 2) / _mapHeight);
-
-    private Vector2 GetRenderMidPosForDebugRender(uint canvasWidth, uint canvasHeight) =>
-        new Vector2(canvasWidth / 2, canvasHeight / 2);
-
 
     // Rotate the camera left / right. Positive angle is clockwise rotation
     private void RotateCamera(float radians)
@@ -216,10 +166,7 @@ internal class RaycasterAppManager : IPixelWindowAppManager
             // Shows every single ray position through the cast. Overkill most of the time
             if (_renderDebug)
             {
-                var midPos = GetRenderMidPosForDebugRender(pixelData.Width, pixelData.Height);
-                var renderScale = GetRenderScaleForDebugRender(pixelData.Width, pixelData.Height);
-                var rayCheckRenderPos = GetRenderPosFromWorldPosForDebugRender(rayPos, midPos, renderScale);
-                pixelData.SetSafe((uint)rayCheckRenderPos.X, (uint)rayCheckRenderPos.Y, (255, 0, 0));
+                _debugRenderer!.RenderRayCast(pixelData, rayPos);
             }
         }
 
