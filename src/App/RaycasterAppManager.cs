@@ -35,23 +35,26 @@ internal class RaycasterAppManager : IPixelWindowAppManager
 
     public void Update(float frameTime)
     {
+        // Player rotation
         if (_inputController!.MouseCaptured)
         {
             var mouseDelta = _inputController.GetSensitivityAdjustedMouseDeltaAndResetToCentre();
-            RotateCamera(mouseDelta.X);
+            RotateCamera(-mouseDelta.X);
         }
+
+        // Player movement
+        var moveSpeed = 4f * 0.001f * frameTime;
+        var movementVector = new Vector2(0, 0);
+        if (_inputController!.MoveForward)   movementVector += _cameraDirection;
+        if (_inputController!.MoveBackwards) movementVector -= _cameraDirection;
+        if (_inputController!.MoveLeft)      movementVector += _cameraDirection.Rotate(AngleHelper.DegreesToRadians(90));
+        if (_inputController!.MoveRight)     movementVector += _cameraDirection.Rotate(AngleHelper.DegreesToRadians(-90));
+        movementVector = movementVector.LengthSquared() == 0 ? movementVector : Vector2.Normalize(movementVector);
+        _cameraPos += moveSpeed * movementVector;
     }
 
     public void FixedUpdate(float timeStep)
     {
-        var moveSpeed = 4f * 0.001f * timeStep;
-        var movementVector = new Vector2(0, 0);
-        if (_inputController!.MoveForward)   movementVector += _cameraDirection;
-        if (_inputController!.MoveBackwards) movementVector -= _cameraDirection;
-        if (_inputController!.MoveLeft)      movementVector += _cameraDirection.Rotate(AngleHelper.DegreesToRadians(-90));
-        if (_inputController!.MoveRight)     movementVector += _cameraDirection.Rotate(AngleHelper.DegreesToRadians(90));
-        movementVector = movementVector.LengthSquared() == 0 ? movementVector : Vector2.Normalize(movementVector);
-        _cameraPos += moveSpeed * movementVector;
     }
 
     public void Render(PixelData pixelData, float frameTime)
@@ -67,12 +70,37 @@ internal class RaycasterAppManager : IPixelWindowAppManager
             hitLocations[x] = CastRay(_cameraPos, rayVector, pixelData);
         }
 
+        for (uint x = 0; x < pixelData.Width; x++)
+        {
+            if (hitLocations[x] == null)
+            {
+                continue;
+            }
+
+            var distance = (hitLocations[x]!.Value - _cameraPos).Length();
+            var lineHeight = (uint)((1 / distance) * pixelData.Height);
+            byte brightness = (byte)((1 / distance * 200) + 55);
+            DrawVerticalPixelStrip(pixelData, x, lineHeight, (brightness, brightness, brightness));
+        }
+
         if (_renderDebug)
         {
             // For debugging purposes, casting just 1 ray
             //hitLocations[0] = CastRay(_cameraPos, _cameraDirection, pixelData);
 
             _debugRenderer!.Render(pixelData, _cameraPos, GetMapEntry, hitLocations);
+        }
+    }
+
+    /// Draw a vertical pixel strip centered on the middle of the screen (the horizon)
+    private void DrawVerticalPixelStrip(PixelData pixelData, uint x, uint height, (byte r, byte g, byte b) colour)
+    {
+        var midY = pixelData.Height / 2;
+        var startY = midY - (height / 2);
+        var endY = midY + (height / 2);
+        for (uint y = startY; y <= endY; y++)
+        {
+            pixelData.SetSafe(x, y, colour);
         }
     }
 
@@ -164,10 +192,10 @@ internal class RaycasterAppManager : IPixelWindowAppManager
             }
 
             // Shows every single ray position through the cast. Overkill most of the time
-            if (_renderDebug)
-            {
-                _debugRenderer!.RenderRayCast(pixelData, rayPos);
-            }
+            //if (_renderDebug)
+            //{
+            //    _debugRenderer!.RenderRayCast(pixelData, rayPos);
+            //}
         }
 
         return null;

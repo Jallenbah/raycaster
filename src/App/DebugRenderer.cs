@@ -33,11 +33,11 @@ internal class DebugRenderer
                     continue;
                 }
 
-                var blockPos = GetRenderPosFromWorldPosForDebugRender(new Vector2(x, y), midPos, renderScale);
+                var blockPos = GetRenderPosFromWorldPosForDebugRender(new Vector2(x, y), midPos, renderScale, pixelData.Height);
 
                 for (uint bx = (uint)blockPos.X + 1; bx < (blockPos.X + renderScale); bx++)
                 {
-                    for (uint by = (uint)blockPos.Y + 1; by < (blockPos.Y + renderScale); by++)
+                    for (uint by = (uint)blockPos.Y - 1; by > (blockPos.Y - renderScale); by--)
                     {
                         pixelData.SetSafe(bx, by, (0, 0, 255));
                     }
@@ -50,13 +50,14 @@ internal class DebugRenderer
         {
             if (hitLocations[x] != null)
             {
-                var renderPos = GetRenderPosFromWorldPosForDebugRender(hitLocations[x]!.Value, midPos, renderScale);
+                var renderPos = GetRenderPosFromWorldPosForDebugRender(hitLocations[x]!.Value, midPos, renderScale, pixelData.Height);
                 pixelData.SetSafe((uint)renderPos.X, (uint)renderPos.Y, (0, 255, 255));
             }
         }
 
         // Camera position as green dot
-        var playerRenderPosition = GetRenderPosFromWorldPosForDebugRender(cameraPos, midPos, renderScale);
+        var playerRenderPosition = GetRenderPosFromWorldPosForDebugRender(cameraPos, midPos, renderScale, pixelData.Height);
+        //playerRenderPosition.Y = pixelData.Height - playerRenderPosition.Y;
         pixelData.SetSafe((uint)playerRenderPosition.X, (uint)playerRenderPosition.Y, (0, 255, 0));
     }
 
@@ -67,17 +68,19 @@ internal class DebugRenderer
     {
         var midPos = GetRenderMidPosForDebugRender(pixelData.Width, pixelData.Height);
         var renderScale = GetRenderScaleForDebugRender(pixelData.Width, pixelData.Height);
-        var rayCheckRenderPos = GetRenderPosFromWorldPosForDebugRender(rayPos, midPos, renderScale);
+        var rayCheckRenderPos = GetRenderPosFromWorldPosForDebugRender(rayPos, midPos, renderScale, pixelData.Height);
         pixelData.SetSafe((uint)rayCheckRenderPos.X, (uint)rayCheckRenderPos.Y, (255, 0, 0));
     }
 
     /// <summary>
     /// For a given world position, gets the position on the screen for rendering debug data
     /// </summary>
-    private Vector2 GetRenderPosFromWorldPosForDebugRender(Vector2 pos, Vector2 midPos, uint renderScale)
+    private Vector2 GetRenderPosFromWorldPosForDebugRender(Vector2 pos, Vector2 midPos, uint renderScale, uint screenHeight)
     {
         var centerOrientedPos = new Vector2(pos.X - _mapWidth / 2, pos.Y - _mapWidth / 2);
-        return (centerOrientedPos * renderScale) + midPos;
+        var screenPos = (centerOrientedPos * renderScale) + midPos;
+        screenPos.Y = screenHeight - screenPos.Y;
+        return screenPos;
     }
 
     /// <summary>
