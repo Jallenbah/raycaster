@@ -78,6 +78,9 @@ internal class InputController
     public bool MoveBackwards => MouseCaptured && SFML.Window.Keyboard.IsKeyPressed(SFML.Window.Keyboard.Key.S);
     public bool MoveRight => MouseCaptured && SFML.Window.Keyboard.IsKeyPressed(SFML.Window.Keyboard.Key.D);
 
+    // Hold space to show debug info
+    public bool ShowDebug => MouseCaptured && SFML.Window.Keyboard.IsKeyPressed(SFML.Window.Keyboard.Key.Space);
+
     /// <summary>
     /// Gets a mouse sensitivity adjusted mouse movement vector, which can be used for analogue input
     /// </summary>

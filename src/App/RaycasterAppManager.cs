@@ -15,7 +15,7 @@ internal class RaycasterAppManager : IPixelWindowAppManager
 
     private float _fovDegrees = 90;
 
-    private bool _renderDebug = true;
+    private bool _renderDebug = false;
 
     public RaycasterAppManager()
     {
@@ -51,6 +51,8 @@ internal class RaycasterAppManager : IPixelWindowAppManager
         if (_inputController!.MoveRight)     movementVector += _cameraDirection.Rotate(AngleHelper.DegreesToRadians(-90));
         movementVector = movementVector.LengthSquared() == 0 ? movementVector : Vector2.Normalize(movementVector);
         _cameraPos += moveSpeed * movementVector;
+
+        _renderDebug = _inputController!.ShowDebug;
     }
 
     public void FixedUpdate(float timeStep)
