@@ -22,7 +22,7 @@ internal class RaycasterAppManager : IPixelWindowAppManager
         _cameraPos = new Vector2(7.5f, 7.5f);
         _cameraDirection = Vector2.Normalize(new Vector2(1, 1));
 
-        _cameraPlane = _cameraDirection.Rotate(AngleHelper.RadiansToDegrees(90));
+        _cameraPlane = _cameraDirection.Rotate(AngleHelper.DegreesToRadians(90));
         _cameraPlane *= MathF.Tan(AngleHelper.DegreesToRadians(_fovDegrees/2)); // fov adjustment
     }
 
@@ -39,7 +39,7 @@ internal class RaycasterAppManager : IPixelWindowAppManager
         if (_inputController!.MouseCaptured)
         {
             var mouseDelta = _inputController.GetSensitivityAdjustedMouseDeltaAndResetToCentre();
-            RotateCamera(-mouseDelta.X);
+            RotateCamera(mouseDelta.X);
         }
 
         // Player movement
@@ -47,8 +47,8 @@ internal class RaycasterAppManager : IPixelWindowAppManager
         var movementVector = new Vector2(0, 0);
         if (_inputController!.MoveForward)   movementVector += _cameraDirection;
         if (_inputController!.MoveBackwards) movementVector -= _cameraDirection;
-        if (_inputController!.MoveLeft)      movementVector += _cameraDirection.Rotate(AngleHelper.DegreesToRadians(90));
-        if (_inputController!.MoveRight)     movementVector += _cameraDirection.Rotate(AngleHelper.DegreesToRadians(-90));
+        if (_inputController!.MoveLeft)      movementVector += _cameraDirection.Rotate(AngleHelper.DegreesToRadians(-90));
+        if (_inputController!.MoveRight)     movementVector += _cameraDirection.Rotate(AngleHelper.DegreesToRadians(90));
         movementVector = movementVector.LengthSquared() == 0 ? movementVector : Vector2.Normalize(movementVector);
         _cameraPos += moveSpeed * movementVector;
 
@@ -81,7 +81,7 @@ internal class RaycasterAppManager : IPixelWindowAppManager
 
             var distance = (hitLocations[x]!.Value - _cameraPos).Length();
             var lineHeight = (uint)((1 / Math.Max(distance, 1)) * pixelData.Height);
-            var facesY = (hitLocations[x]!.Value.X - (int)hitLocations[x]!.Value.X) > (hitLocations[x]!.Value.Y - (int)hitLocations[x]!.Value.Y);
+            var facesY = MathF.Abs(hitLocations[x]!.Value.X - (int)hitLocations[x]!.Value.X) > MathF.Abs(hitLocations[x]!.Value.Y - (int)hitLocations[x]!.Value.Y);
             byte brightness = (byte)((1 / Math.Max(distance, 1) * 200) + (facesY ? 55: 0));
             DrawVerticalPixelStrip(pixelData, x, lineHeight, (brightness, brightness, brightness));
         }
