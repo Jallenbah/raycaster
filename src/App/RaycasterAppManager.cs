@@ -96,14 +96,14 @@ internal class RaycasterAppManager : IPixelWindowAppManager
     }
 
     /// Draw a vertical pixel strip centered on the middle of the screen (the horizon)
-    private void DrawVerticalPixelStrip(PixelData pixelData, uint x, uint height, (byte r, byte g, byte b) colour)
+    private void DrawVerticalPixelStrip(PixelData pixelData, uint x, uint lineHeight, (byte r, byte g, byte b) colour)
     {
         var midY = pixelData.Height / 2;
-        var startY = midY - (height / 2);
-        var endY = midY + (height / 2);
+        var startY = midY - (lineHeight / 2);
+        var endY = midY + (lineHeight / 2) - 1;
         for (uint y = startY; y <= endY; y++)
         {
-            pixelData.SetSafe(x, y, colour);
+            pixelData[x, y] = colour;
         }
     }
 

@@ -62,6 +62,7 @@
         /// <summary>
         /// Sets the colour of a pixel, doing nothing if it's outside of the canvas
         /// </summary>
+        /// <remarks>This will end up quite a lot slower than direct writing via <see cref="[]"/> due to the bounds checking</remarks>
         public void SetSafe(uint x, uint y, (byte r, byte g, byte b) colour)
         {
             if(x < 0 || y < 0 || x >= Width || y >= Height)
