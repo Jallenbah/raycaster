@@ -51,7 +51,7 @@ internal class DebugRenderer
             if (hitLocations[x] != null)
             {
                 var renderPos = GetRenderPosFromWorldPosForDebugRender(hitLocations[x]!.Value, midPos, renderScale, pixelData.Height);
-                pixelData.SetSafe((uint)renderPos.X, (uint)renderPos.Y, (0, 255, 255));
+                pixelData.SetSafe((uint)renderPos.X, (uint)renderPos.Y, (255, 0, 255));
             }
         }
 

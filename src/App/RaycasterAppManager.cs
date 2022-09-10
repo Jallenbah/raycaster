@@ -63,6 +63,22 @@ internal class RaycasterAppManager : IPixelWindowAppManager
     {
         pixelData.Clear();
 
+        // Draw sky and floor
+        for (uint x = 0; x < pixelData.Width; x++)
+        {
+            var halfHeight = pixelData.Height / 2;
+            for (uint y = 0; y < halfHeight; y++)
+            {
+                pixelData[x, y] = (102, 189, 255); // sky blue
+            }
+
+            for (uint y = halfHeight; y < pixelData.Height; y++)
+            {
+                var floorColourMult = (1f / pixelData.Height) * 1.5 * (pixelData.Height - y); // Make floor darker further away
+                pixelData[x, y] = ((byte)(255 - (255 * floorColourMult)), (byte)(77 - (77 * floorColourMult)), 0); // orange floor
+            }
+        }
+
         var hitLocations = new Vector2?[pixelData.Width];
         for (uint x = 0; x < pixelData.Width; x++)
         {
