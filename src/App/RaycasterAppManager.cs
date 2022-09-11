@@ -74,7 +74,7 @@ internal class RaycasterAppManager : IPixelWindowAppManager
 
             for (uint y = halfHeight; y < pixelData.Height; y++)
             {
-                var floorColourMult = (1f / pixelData.Height) * 1.5 * (pixelData.Height - y); // Make floor darker further away
+                var floorColourMult = (1f / pixelData.Height) * 1.9 * (pixelData.Height - y); // Make floor darker further away
                 pixelData[x, y] = ((byte)(255 - (255 * floorColourMult)), (byte)(77 - (77 * floorColourMult)), 0); // orange floor
             }
         }
@@ -149,7 +149,7 @@ internal class RaycasterAppManager : IPixelWindowAppManager
         var rayPos = cameraPos;
 
         // Finds the next integer coordinate value based on the current position in the ray and the direction in which it is being cast on that axis
-        float calculateNextGridValue(float currentPos, float directionUnitValue)
+        static float calculateNextGridValue(float currentPos, float directionUnitValue)
         {
             float val = currentPos < 0 == directionUnitValue < 0
                 ? (int)(currentPos + directionUnitValue)
@@ -188,23 +188,28 @@ internal class RaycasterAppManager : IPixelWindowAppManager
                 nextGridValuesAlongRay.Y - rayPos.Y
             );
 
+            // By stepping the ray forward half a cell in the direction of the boundary we have hit, we can get the next grid unit.
+            var nextCellOnBoundary = (float pos, float unitDir) => (int)MathF.Floor(pos + 0.5f * unitDir);
+            (int X, int Y) cellToCheck;
+
             // We compare the squared lengths of the 2 vectors as it avoids unnecessary costly sqrts to get the actual lengths
             if (distanceToNextX.LengthSquared() < distanceToNextY.LengthSquared())
             {
                 rayPos += distanceToNextX;
+                cellToCheck = (
+                    X: nextCellOnBoundary(rayPos.X, polarisedDirectionUnitValues.X),
+                    Y: (int)MathF.Floor(rayPos.Y)
+                );
             }
             else
             {
                 rayPos += distanceToNextY;
+                cellToCheck = (
+                    X: (int)MathF.Floor(rayPos.X),
+                    Y: nextCellOnBoundary(rayPos.Y, polarisedDirectionUnitValues.Y)
+                );
             }
 
-            // By stepping the ray forward a tiny amount, we can get the next grid unit.
-            // Adjust by 1 if negative as cell occupies x to x+1 so flooring a negative number would wrongly get the next cell over.
-            const float cellCheckStepSize = 0.0001f;
-            var cellToCheck = (
-                X: (int)(rayPos.X + cellCheckStepSize * direction.X) + (rayPos.X < 0 ? -1 : 0),
-                Y: (int)(rayPos.Y + cellCheckStepSize * direction.Y) + (rayPos.Y < 0 ? -1 : 0)
-            );
             if (GetMapEntry(cellToCheck.X, cellToCheck.Y) == 1)
             {
                 return rayPos; // You sunk my battleship
